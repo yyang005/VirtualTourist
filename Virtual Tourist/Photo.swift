@@ -11,11 +11,10 @@ import Foundation
 class Photo {
     var title: String
     var filePath: String
-    let pin: Pin
+    var pin: Pin?
     
-    init(title: String, filePath: String, pin: Pin){
-        self.title = title
-        self.filePath = filePath
-        self.pin = pin
+    init(dictionary: [String: AnyObject]){
+        self.title = dictionary["title"] as! String
+        self.filePath = dictionary["url_m"] as! String
     }
 }

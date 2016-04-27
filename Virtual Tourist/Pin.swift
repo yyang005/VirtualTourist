@@ -11,7 +11,7 @@ import Foundation
 class Pin {
     var latitude: Double
     var longitude: Double
-    var photos: [Photo]?
+    var photos: [Photo] = [Photo]()
     
     init(latitude: Double, longitude: Double){
         self.latitude = latitude

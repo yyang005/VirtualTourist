@@ -92,21 +92,24 @@ class ViewController: UIViewController, MKMapViewDelegate {
                             "spanLatDelta": mapView.region.span.latitudeDelta, "spanLongDelta": mapView.region.span.longitudeDelta]
         
         defaults.setObject(dictionary, forKey: "location")
+        defaults.setBool(true, forKey: "firstLoad")
     }
     
     func loadMapViewSettings(mapView: MKMapView){
         let defaults = NSUserDefaults.standardUserDefaults()
-        
-        let dic = defaults.objectForKey("location")!
-        let lat = dic["latitude"] as! Double
-        let long = dic["longitude"] as! Double
-        let spanLatDelta = dic["spanLatDelta"] as! Double
-        let spanLongDelta = dic["spanLongDelta"] as! Double
-        
-        let center = CLLocationCoordinate2D(latitude: lat, longitude: long)
-        let span = MKCoordinateSpan(latitudeDelta: spanLatDelta, longitudeDelta: spanLongDelta)
-        let region = MKCoordinateRegionMake(center, span)
-        mapView.setRegion(region, animated: true)
+        let loaded = defaults.boolForKey("firstLoad")
+        if loaded {
+            let dic = defaults.objectForKey("location")!
+            let lat = dic["latitude"] as! Double
+            let long = dic["longitude"] as! Double
+            let spanLatDelta = dic["spanLatDelta"] as! Double
+            let spanLongDelta = dic["spanLongDelta"] as! Double
+            
+            let center = CLLocationCoordinate2D(latitude: lat, longitude: long)
+            let span = MKCoordinateSpan(latitudeDelta: spanLatDelta, longitudeDelta: spanLongDelta)
+            let region = MKCoordinateRegionMake(center, span)
+            mapView.setRegion(region, animated: true)
+        }
     }
 }
 
