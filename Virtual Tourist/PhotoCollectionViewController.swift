@@ -140,8 +140,6 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier("PhotoCell", forIndexPath: indexPath) as! PhotoCollectionCell
         let imagePath = pin?.photos[indexPath.row].filePath
         
-        cell.layer.borderWidth = 1
-        cell.layer.borderColor = UIColor.blackColor().CGColor
         cell.layer.cornerRadius = 5
         
         cell.imageView.backgroundColor = UIColor.lightGrayColor()

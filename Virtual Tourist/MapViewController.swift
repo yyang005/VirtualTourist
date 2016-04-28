@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  MapViewController.swift
 //  Virtual Tourist
 //
 //  Created by ying yang on 4/7/16.
@@ -9,7 +9,7 @@
 import UIKit
 import MapKit
 
-class ViewController: UIViewController, MKMapViewDelegate {
+class MapViewController: UIViewController, MKMapViewDelegate {
     
     var isEditMode = false
     
@@ -23,7 +23,7 @@ class ViewController: UIViewController, MKMapViewDelegate {
         super.viewDidLoad()
         
         let longPressed = UILongPressGestureRecognizer(target: self, action: "handleLongPressed:")
-        longPressed.minimumPressDuration = 2
+        longPressed.minimumPressDuration = 1
         mapView.addGestureRecognizer(longPressed)
         createLabel()
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .Edit, target: self, action: "barButtonItemClicked")
@@ -61,11 +61,13 @@ class ViewController: UIViewController, MKMapViewDelegate {
     }
     
     func handleLongPressed(gestureRecognizer: UIGestureRecognizer){
-        let touchPoint = gestureRecognizer.locationInView(mapView)
-        let location = mapView.convertPoint(touchPoint, toCoordinateFromView: mapView)
-        let annotation = MKPointAnnotation()
-        annotation.coordinate = location
-        mapView.addAnnotation(annotation)
+        if gestureRecognizer.state == UIGestureRecognizerState.Began {
+            let touchPoint = gestureRecognizer.locationInView(mapView)
+            let location = mapView.convertPoint(touchPoint, toCoordinateFromView: mapView)
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = location
+            mapView.addAnnotation(annotation)
+        }
     }
 
     // MARK: MapView delegates
