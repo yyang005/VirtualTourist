@@ -104,22 +104,27 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     
     func mapView(mapView: MKMapView, didSelectAnnotationView view: MKAnnotationView){
         mapView.deselectAnnotation(view.annotation, animated: true)
-        if isEditMode {
-            mapView.removeAnnotation(view.annotation!)
-        }else{
-            let vc = self.storyboard?.instantiateViewControllerWithIdentifier("PhotoCollection") as! PhotoCollectionViewController
-            let lat = view.annotation?.coordinate.latitude
-            let long = view.annotation?.coordinate.longitude
-            
-            let fetchRequest = NSFetchRequest(entityName: "Pin")
-            //fetchRequest.predicate = NSPredicate(format: "latitude = %@, longitude = %@", lat!, long!)
-            do {
-                let pins = try sharedContext.executeFetchRequest(fetchRequest) as! [Pin]
+        let lat = view.annotation?.coordinate.latitude
+        let long = view.annotation?.coordinate.longitude
+
+        let fetchRequest = NSFetchRequest(entityName: "Pin")
+        let predicate1 = NSPredicate(format: "latitude == %Lf", lat!)
+        let predicate2 = NSPredicate(format: "longitude == %Lf", long!)
+        fetchRequest.predicate = NSCompoundPredicate(type: .AndPredicateType, subpredicates: [predicate1, predicate2])
+        fetchRequest.returnsObjectsAsFaults = false
+        do {
+            let pins = try sharedContext.executeFetchRequest(fetchRequest) as! [Pin]
+            if isEditMode {
+                mapView.removeAnnotation(view.annotation!)
+                sharedContext.deleteObject(pins[0])
+                saveContext()
+            }else{
+                let vc = self.storyboard?.instantiateViewControllerWithIdentifier("PhotoCollection") as! PhotoCollectionViewController
                 vc.pin = pins[0]
                 self.navigationController?.pushViewController(vc, animated: true)
-            }catch(let error) {
-                print(error)
             }
+        }catch(let error) {
+            print(error)
         }
     }
     
@@ -152,9 +157,5 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             mapView.setRegion(region, animated: true)
         }
     }
-    
-    // MARK: fetch results controller delegate methods
-    
-    
 }
 

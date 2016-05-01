@@ -10,7 +10,7 @@ import UIKit
 import MapKit
 import CoreData
 
-class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UICollectionViewDelegate, UICollectionViewDataSource {
+class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UICollectionViewDelegate, UICollectionViewDataSource, NSFetchedResultsControllerDelegate {
 
     @IBOutlet weak var mapView: MKMapView!
     
@@ -50,41 +50,23 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
         
         flowLayout.minimumInteritemSpacing = space
         flowLayout.itemSize = CGSizeMake(dimensionX, dimensionY)
+        button.enabled = false
         
+        do {
+            try fetchedResultsController.performFetch()
+            if pin!.photos?.count > 0 {
+                button.enabled = true
+            }
+        }catch(let error){
+            print(error)
+        }
+        
+        fetchedResultsController.delegate = self
         collectionView.delegate = self
         collectionView.dataSource = self
-        button.enabled = false
-        client.searchFlickrPhotosByLocation((pin?.latitude)!, longitude: (pin?.longitude)!) { (results, error) -> Void in
-            guard error == nil else {
-                print(error)
-                return
-            }
-            
-            if let photoArray = results {
-                if photoArray.count == 0 {
-                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                        self.collectionView.hidden = true
-                        self.noPhotoLabel.hidden = false
-                        self.noPhotoLabel!.text = "This pin has no photos"
-                    })
-                    return
-                }
-                
-                _ = photoArray.map() { (dictionary: [String : AnyObject]) -> Photo in
-                    let photo = Photo(dictionary: dictionary, context: self.sharedContext)
-                    
-                    // We associate this movie with it's actor by appending it to the array
-                    // In core data we use the relationship. We set the movie's actor property
-                    self.pin!.photos.append(photo)
-                    
-                    return photo
-                }
-
-            }
-            dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                self.button.enabled = true
-                self.collectionView.reloadData()
-            })
+        
+        if pin!.photos?.count == 0 {
+            fetchPhotosFromFlickr()
         }
     }
     
@@ -110,22 +92,58 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     }
     
     func removeSelectedPhotos() {
+        let photos = fetchedResultsController.fetchedObjects as! [Photo]
         if selectedIndexPaths.count > 0 {
-            for index in selectedIndexPaths {
-                pin?.photos.removeAtIndex(index.row)
+            for indexPath in selectedIndexPaths {
+                let photo = photos[indexPath.row]
+                sharedContext.deleteObject(photo)
             }
+            saveContext()
         }
     }
     
     func update() {
         button.titleLabel!.text = "New Collection"
         removeSelectedPhotos()
-        collectionView.deleteItemsAtIndexPaths(selectedIndexPaths)
     }
     
     //TODO: fetch new photos from flickr
     func grabNewPhotos() {
         
+    }
+    
+    func fetchPhotosFromFlickr() {
+        client.searchFlickrPhotosByLocation((pin?.latitude)!, longitude: (pin?.longitude)!) { (results, error) -> Void in
+            guard error == nil else {
+                print(error)
+                return
+            }
+            
+            if let photoArray = results {
+                if photoArray.count == 0 {
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                        self.collectionView.hidden = true
+                        self.noPhotoLabel.hidden = false
+                        self.noPhotoLabel!.text = "This pin has no photos"
+                    })
+                    return
+                }
+                
+                _ = photoArray.map() { (dictionary: [String : AnyObject]) -> Photo in
+                    let photo = Photo(dictionary: dictionary, context: self.sharedContext)
+                    
+                    // In core data we use the relationship. We set the photo's pin property
+                    photo.pin = self.pin
+                    
+                    return photo
+                }
+                dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    self.button.enabled = true
+                    self.collectionView.reloadData()
+                })
+                self.saveContext()
+            }
+        }
     }
     
     // MARK: Core data convenience
@@ -139,7 +157,8 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     }
     
     lazy var fetchedResultsController: NSFetchedResultsController = {
-        let fetchRequest = NSFetchRequest(entityName: "Pin")
+        let fetchRequest = NSFetchRequest(entityName: "Photo")
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
         let fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: self.sharedContext, sectionNameKeyPath: nil, cacheName: nil)
         return fetchedResultsController
     }()
@@ -147,18 +166,20 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     //MARK: Collection view data source
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return pin!.photos.count
+        let sectionInfo = fetchedResultsController.sections![section]
+        return sectionInfo.numberOfObjects
     }
     
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier("PhotoCell", forIndexPath: indexPath) as! PhotoCollectionCell
-        let imagePath = pin?.photos[indexPath.row].filePath
+        let photo = fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
+        let imagePath = photo.filePath
         
         cell.layer.cornerRadius = 5
         
         cell.imageView.backgroundColor = UIColor.lightGrayColor()
         cell.activityIndicator.startAnimating()
-        client.taskForImage(imagePath!) { (data, error) -> Void in
+        client.taskForImage(imagePath) { (data, error) -> Void in
             
             guard error == nil else {
                 print(error)
@@ -196,5 +217,25 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
             button.titleLabel!.text = "New Collection"
             isDelete = false
         }
+    }
+    
+    // MARK: fetch results controller delegate methods
+    
+    func controllerWillChangeContent(controller: NSFetchedResultsController) {
+    }
+    
+    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
+        switch type {
+        case .Delete:
+            collectionView.deleteItemsAtIndexPaths([indexPath!])
+        //case .Insert:
+            //collectionView.insertItemsAtIndexPaths([indexPath!])
+        default:
+            break
+        }
+    }
+    
+    func controllerDidChangeContent(controller: NSFetchedResultsController) {
+        
     }
 }
