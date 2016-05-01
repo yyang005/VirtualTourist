@@ -7,13 +7,21 @@
 //
 
 import Foundation
+import CoreData
 
-class Photo {
-    var title: String
-    var filePath: String
-    var pin: Pin?
+class Photo: NSManagedObject {
+    @NSManaged var title: String
+    @NSManaged var filePath: String
+    @NSManaged var pin: Pin?
     
-    init(dictionary: [String: AnyObject]){
+    override init(entity: NSEntityDescription, insertIntoManagedObjectContext context: NSManagedObjectContext?) {
+       super.init(entity: entity, insertIntoManagedObjectContext: context)
+    }
+    
+    init(dictionary: [String: AnyObject], context: NSManagedObjectContext){
+        let entity = NSEntityDescription.entityForName("Photo", inManagedObjectContext: context)!
+        super.init(entity: entity, insertIntoManagedObjectContext: context)
+        
         self.title = dictionary["title"] as! String
         self.filePath = dictionary["url_m"] as! String
     }

@@ -8,6 +8,7 @@
 
 import UIKit
 import MapKit
+import CoreData
 
 class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UICollectionViewDelegate, UICollectionViewDataSource {
 
@@ -68,12 +69,9 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
                     })
                     return
                 }
-                for elem in photoArray {
-                    let photo = Photo(dictionary: elem)
-                    self.pin!.photos.append(photo)
-                }
+                
                 _ = photoArray.map() { (dictionary: [String : AnyObject]) -> Photo in
-                    let photo = Photo(dictionary: dictionary)
+                    let photo = Photo(dictionary: dictionary, context: self.sharedContext)
                     
                     // We associate this movie with it's actor by appending it to the array
                     // In core data we use the relationship. We set the movie's actor property
@@ -130,6 +128,22 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
         
     }
     
+    // MARK: Core data convenience
+    
+    lazy var sharedContext: NSManagedObjectContext = {
+        return CoreDataStackManager.sharedInstance().managedObjectContext
+    }()
+    
+    func saveContext(){
+        CoreDataStackManager.sharedInstance().saveContext()
+    }
+    
+    lazy var fetchedResultsController: NSFetchedResultsController = {
+        let fetchRequest = NSFetchRequest(entityName: "Pin")
+        let fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: self.sharedContext, sectionNameKeyPath: nil, cacheName: nil)
+        return fetchedResultsController
+    }()
+
     //MARK: Collection view data source
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {

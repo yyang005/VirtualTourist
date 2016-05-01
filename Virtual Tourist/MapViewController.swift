@@ -8,6 +8,7 @@
 
 import UIKit
 import MapKit
+import CoreData
 
 class MapViewController: UIViewController, MKMapViewDelegate {
     
@@ -23,15 +24,42 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         super.viewDidLoad()
         
         let longPressed = UILongPressGestureRecognizer(target: self, action: "handleLongPressed:")
-        longPressed.minimumPressDuration = 1
+        longPressed.minimumPressDuration = 2
         mapView.addGestureRecognizer(longPressed)
         createLabel()
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .Edit, target: self, action: "barButtonItemClicked")
         mapView.delegate = self
         
         loadMapViewSettings(mapView)
+        
+        var pins = [Pin]()
+        let fetchRequest = NSFetchRequest(entityName: "Pin")
+        do {
+            pins = try sharedContext.executeFetchRequest(fetchRequest) as! [Pin]
+        }catch(let error) {
+            print(error)
+        }
+        
+        for pin in pins {
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
+            mapView.addAnnotation(annotation)
+        }
     }
     
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(true)
+    }
+    
+    // MARK: Core data convenience
+    
+    lazy var sharedContext: NSManagedObjectContext = {
+        return CoreDataStackManager.sharedInstance().managedObjectContext
+    }()
+    
+    func saveContext(){
+        CoreDataStackManager.sharedInstance().saveContext()
+    }
     
     // MARK: IB Actions
     
@@ -64,6 +92,8 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         if gestureRecognizer.state == UIGestureRecognizerState.Began {
             let touchPoint = gestureRecognizer.locationInView(mapView)
             let location = mapView.convertPoint(touchPoint, toCoordinateFromView: mapView)
+            let _ = Pin(latitude: location.latitude, longitude: location.longitude, context: sharedContext)
+            saveContext()
             let annotation = MKPointAnnotation()
             annotation.coordinate = location
             mapView.addAnnotation(annotation)
@@ -73,14 +103,23 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     // MARK: MapView delegates
     
     func mapView(mapView: MKMapView, didSelectAnnotationView view: MKAnnotationView){
+        mapView.deselectAnnotation(view.annotation, animated: true)
         if isEditMode {
             mapView.removeAnnotation(view.annotation!)
         }else{
             let vc = self.storyboard?.instantiateViewControllerWithIdentifier("PhotoCollection") as! PhotoCollectionViewController
             let lat = view.annotation?.coordinate.latitude
             let long = view.annotation?.coordinate.longitude
-            vc.pin = Pin(latitude: lat!, longitude: long!)
-            self.navigationController?.pushViewController(vc, animated: true)
+            
+            let fetchRequest = NSFetchRequest(entityName: "Pin")
+            //fetchRequest.predicate = NSPredicate(format: "latitude = %@, longitude = %@", lat!, long!)
+            do {
+                let pins = try sharedContext.executeFetchRequest(fetchRequest) as! [Pin]
+                vc.pin = pins[0]
+                self.navigationController?.pushViewController(vc, animated: true)
+            }catch(let error) {
+                print(error)
+            }
         }
     }
     
@@ -113,5 +152,9 @@ class MapViewController: UIViewController, MKMapViewDelegate {
             mapView.setRegion(region, animated: true)
         }
     }
+    
+    // MARK: fetch results controller delegate methods
+    
+    
 }
 

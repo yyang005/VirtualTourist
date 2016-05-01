@@ -7,13 +7,21 @@
 //
 
 import Foundation
+import CoreData
 
-class Pin {
-    var latitude: Double
-    var longitude: Double
-    var photos: [Photo] = [Photo]()
+class Pin: NSManagedObject {
+    @NSManaged var latitude: Double
+    @NSManaged var longitude: Double
+    @NSManaged var photos: [Photo]
     
-    init(latitude: Double, longitude: Double){
+    override init(entity: NSEntityDescription, insertIntoManagedObjectContext context: NSManagedObjectContext?) {
+        super.init(entity: entity, insertIntoManagedObjectContext: context)
+    }
+    
+    init(latitude: Double, longitude: Double, context: NSManagedObjectContext){
+        let entity = NSEntityDescription.entityForName("Pin", inManagedObjectContext: context)!
+        super.init(entity: entity, insertIntoManagedObjectContext: context)
+        
         self.latitude = latitude
         self.longitude = longitude
     }
