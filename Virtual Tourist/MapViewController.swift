@@ -37,7 +37,8 @@ class MapViewController: UIViewController, MKMapViewDelegate {
         do {
             pins = try sharedContext.executeFetchRequest(fetchRequest) as! [Pin]
         }catch(let error) {
-            print(error)
+            let error = error as NSError
+            alert(error.description)
         }
         
         for pin in pins {
@@ -124,7 +125,8 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                 self.navigationController?.pushViewController(vc, animated: true)
             }
         }catch(let error) {
-            print(error)
+            let error = error as NSError
+            alert(error.description)
         }
     }
     

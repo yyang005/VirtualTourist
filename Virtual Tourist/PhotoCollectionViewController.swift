@@ -58,7 +58,8 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
                 button.enabled = true
             }
         }catch(let error){
-            print(error)
+            let error = error as NSError
+            alert(error.description)
         }
         
         fetchedResultsController.delegate = self
@@ -94,11 +95,12 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     func removeSelectedPhotos() {
         let photos = fetchedResultsController.fetchedObjects as! [Photo]
         if selectedIndexPaths.count > 0 {
+            print(selectedIndexPaths.count)
             for indexPath in selectedIndexPaths {
                 let photo = photos[indexPath.row]
                 sharedContext.deleteObject(photo)
+                saveContext()
             }
-            saveContext()
         }
     }
     
@@ -115,7 +117,7 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     func fetchPhotosFromFlickr() {
         client.searchFlickrPhotosByLocation((pin?.latitude)!, longitude: (pin?.longitude)!) { (results, error) -> Void in
             guard error == nil else {
-                print(error)
+                self.alert(error!)
                 return
             }
             
@@ -159,6 +161,7 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     lazy var fetchedResultsController: NSFetchedResultsController = {
         let fetchRequest = NSFetchRequest(entityName: "Photo")
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        fetchRequest.predicate = NSPredicate(format: "pin == %@", self.pin!)
         let fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: self.sharedContext, sectionNameKeyPath: nil, cacheName: nil)
         return fetchedResultsController
     }()
@@ -221,21 +224,12 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     
     // MARK: fetch results controller delegate methods
     
-    func controllerWillChangeContent(controller: NSFetchedResultsController) {
-    }
-    
     func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
         switch type {
         case .Delete:
             collectionView.deleteItemsAtIndexPaths([indexPath!])
-        //case .Insert:
-            //collectionView.insertItemsAtIndexPaths([indexPath!])
         default:
             break
         }
-    }
-    
-    func controllerDidChangeContent(controller: NSFetchedResultsController) {
-        
     }
 }
