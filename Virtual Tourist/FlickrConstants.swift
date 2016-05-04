@@ -17,7 +17,9 @@ extension FlickrClient {
         static let ApiHost = "api.flickr.com"
         static let ApiPath = "/services/rest/"
         
-        //MARK: Flickr Api key
+        //MARK: maximum number of photos to be saved
+        
+        static let MaxNumPhotos: Int = 21
     }
     
     struct FlickrParameterKey {
@@ -28,6 +30,7 @@ extension FlickrClient {
         static let Format = "format"
         static let Extras = "extras"
         static let NoJSONCallback = "nojsoncallback"
+        static let Page = "page"
     }
     
     struct FlickrParameterValue {

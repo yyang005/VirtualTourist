@@ -95,7 +95,6 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     func removeSelectedPhotos() {
         let photos = fetchedResultsController.fetchedObjects as! [Photo]
         if selectedIndexPaths.count > 0 {
-            print(selectedIndexPaths.count)
             for indexPath in selectedIndexPaths {
                 let photo = photos[indexPath.row]
                 sharedContext.deleteObject(photo)
@@ -109,9 +108,13 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
         removeSelectedPhotos()
     }
     
-    //TODO: fetch new photos from flickr
+    //MARK: fetch new photos from flickr
     func grabNewPhotos() {
-        
+        for photo in fetchedResultsController.fetchedObjects as! [Photo] {
+            sharedContext.deleteObject(photo)
+            saveContext()
+        }
+        fetchPhotosFromFlickr()
     }
     
     func fetchPhotosFromFlickr() {
@@ -130,15 +133,14 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
                     })
                     return
                 }
-                
-                _ = photoArray.map() { (dictionary: [String : AnyObject]) -> Photo in
-                    let photo = Photo(dictionary: dictionary, context: self.sharedContext)
+                let numPhotos = min(photoArray.count, FlickrClient.Constants.MaxNumPhotos)
+                for i in 0...numPhotos {
+                    let photo = Photo(dictionary: photoArray[i], context: self.sharedContext)
                     
                     // In core data we use the relationship. We set the photo's pin property
                     photo.pin = self.pin
-                    
-                    return photo
                 }
+                
                 dispatch_async(dispatch_get_main_queue(), { () -> Void in
                     self.button.enabled = true
                     self.collectionView.reloadData()
@@ -167,6 +169,11 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     }()
 
     //MARK: Collection view data source
+    
+    func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
+        let sectionInfo = fetchedResultsController.sections!
+        return sectionInfo.count
+    }
     
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let sectionInfo = fetchedResultsController.sections![section]

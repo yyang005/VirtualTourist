@@ -100,15 +100,56 @@ class FlickrClient {
                 searchCompletionHandler(results: nil, error: "no photos returned")
                 return
             }
-            guard let photoDictionary = results["photos"] as? [String: AnyObject] else {
+            guard let photoDictionary = results[FlickrResponseKey.Photos] as? [String: AnyObject] else {
                 searchCompletionHandler(results: nil, error: "could not find the key: \(FlickrResponseKey.Photos)")
                 return
             }
-            guard let photoArray = photoDictionary["photo"] as? [[String: AnyObject]] else {
-                searchCompletionHandler(results: nil, error: "could not find the key: \(FlickrResponseKey.Photo)")
+            
+            guard let totalPages = photoDictionary[FlickrResponseKey.Pages] as? Int else {
+                searchCompletionHandler(results: nil, error: "could not find the key: \(FlickrResponseKey.Pages)")
                 return
             }
-            searchCompletionHandler(results: photoArray, error: nil)
+            let pageLimit = min(totalPages, 40)
+            let pageNumber = Int(arc4random_uniform(UInt32(pageLimit))) + 1
+            
+            self.searchFlickrPhotosByLocation(latitude, longitude: longitude, withPageNumber: pageNumber, searchWithPageCompletionHandler: { (results, error) -> Void in
+                    searchCompletionHandler(results: results, error: error)
+            })
         }
     }
+    
+    func searchFlickrPhotosByLocation(latitude: Double, longitude: Double, withPageNumber: Int, searchWithPageCompletionHandler: (results: [[String: AnyObject]]?, error: String?) -> Void){
+        let method: [String: String] = [
+            FlickrParameterKey.ApiKey: FlickrParameterValue.ApiKey,
+            FlickrParameterKey.Method: FlickrParameterValue.SearchMethod,
+            FlickrParameterKey.Latitude: "\(latitude)",
+            FlickrParameterKey.Longitude: "\(longitude)",
+            FlickrParameterKey.Format: FlickrParameterValue.ResponseFormat,
+            FlickrParameterKey.Extras: FlickrParameterValue.MediumURL,
+            FlickrParameterKey.NoJSONCallback: FlickrParameterValue.DisableJSONCallback,
+            FlickrParameterKey.Page: "\(withPageNumber)"
+        ]
+        
+        taskForGetMethod(method) { (results, error) -> Void in
+            guard error == nil else {
+                searchWithPageCompletionHandler(results: nil, error: error!)
+                return
+            }
+            guard let results = results else {
+                searchWithPageCompletionHandler(results: nil, error: "no photos returned")
+                return
+            }
+            guard let photoDictionary = results[FlickrResponseKey.Photos] as? [String: AnyObject] else {
+                searchWithPageCompletionHandler(results: nil, error: "could not find the key: \(FlickrResponseKey.Photos)")
+                return
+            }
+            guard let photoArray = photoDictionary[FlickrResponseKey.Photo] as? [[String: AnyObject]] else {
+                searchWithPageCompletionHandler(results: nil, error: "could not find the key: \(FlickrResponseKey.Photo)")
+                return
+            }
+            
+            searchWithPageCompletionHandler(results: photoArray, error: nil)
+        }
+    }
+
 }
