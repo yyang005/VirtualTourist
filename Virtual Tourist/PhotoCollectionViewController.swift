@@ -26,6 +26,8 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     let client = FlickrClient.sharedInstance
     
     var selectedIndexPaths = [NSIndexPath]()
+    var insertIndexPaths: [NSIndexPath]!
+    var deleteIndexPaths: [NSIndexPath]!
     var isDelete = false
     
     // MARK: IB actions
@@ -98,8 +100,9 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
             for indexPath in selectedIndexPaths {
                 let photo = photos[indexPath.row]
                 sharedContext.deleteObject(photo)
-                saveContext()
+                
             }
+            saveContext()
         }
     }
     
@@ -112,8 +115,8 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     func grabNewPhotos() {
         for photo in fetchedResultsController.fetchedObjects as! [Photo] {
             sharedContext.deleteObject(photo)
-            saveContext()
         }
+        saveContext()
         fetchPhotosFromFlickr()
     }
     
@@ -133,6 +136,7 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
                     })
                     return
                 }
+                print(photoArray)
                 let numPhotos = min(photoArray.count, FlickrClient.Constants.MaxNumPhotos)
                 for i in 0...numPhotos {
                     let photo = Photo(dictionary: photoArray[i], context: self.sharedContext)
@@ -143,7 +147,7 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
                 
                 dispatch_async(dispatch_get_main_queue(), { () -> Void in
                     self.button.enabled = true
-                    self.collectionView.reloadData()
+                    //self.collectionView.reloadData()
                 })
                 self.saveContext()
             }
@@ -231,12 +235,26 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     
     // MARK: fetch results controller delegate methods
     
+    func controllerWillChangeContent(controller: NSFetchedResultsController) {
+        insertIndexPaths = [NSIndexPath]()
+        deleteIndexPaths = [NSIndexPath]()
+    }
+    
     func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
         switch type {
+        case .Insert:
+            insertIndexPaths.append(newIndexPath!)
         case .Delete:
-            collectionView.deleteItemsAtIndexPaths([indexPath!])
+            deleteIndexPaths.append(indexPath!)
         default:
             break
         }
+    }
+    
+    func controllerDidChangeContent(controller: NSFetchedResultsController) {
+        collectionView.performBatchUpdates({ () -> Void in
+            self.collectionView.insertItemsAtIndexPaths(self.insertIndexPaths)
+            self.collectionView.deleteItemsAtIndexPaths(self.deleteIndexPaths)
+            }, completion: nil)
     }
 }

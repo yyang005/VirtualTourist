@@ -17,6 +17,7 @@ class FlickrClient {
     
     func taskForGetMethod(method: [String: String], completionHandlerForGet: (results: AnyObject?, error: String?) -> Void) -> NSURLSessionDataTask{
         let url = urlFromMethod(method)
+        print(url)
         let request = NSURLRequest(URL: url)
         let task = session.dataTaskWithRequest(request) { (data, response, error) -> Void in
             guard error == nil else {
@@ -144,10 +145,11 @@ class FlickrClient {
                 return
             }
             guard let photoArray = photoDictionary[FlickrResponseKey.Photo] as? [[String: AnyObject]] else {
+                
                 searchWithPageCompletionHandler(results: nil, error: "could not find the key: \(FlickrResponseKey.Photo)")
                 return
             }
-            
+            print(withPageNumber)
             searchWithPageCompletionHandler(results: photoArray, error: nil)
         }
     }
