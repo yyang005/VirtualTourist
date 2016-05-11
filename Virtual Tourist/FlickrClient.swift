@@ -128,7 +128,8 @@ class FlickrClient {
             FlickrParameterKey.Format: FlickrParameterValue.ResponseFormat,
             FlickrParameterKey.Extras: FlickrParameterValue.MediumURL,
             FlickrParameterKey.NoJSONCallback: FlickrParameterValue.DisableJSONCallback,
-            FlickrParameterKey.Page: "\(withPageNumber)"
+            FlickrParameterKey.Page: "\(withPageNumber)",
+            FlickrParameterKey.PerPage: FlickrParameterValue.PerPage
         ]
         
         taskForGetMethod(method) { (results, error) -> Void in
@@ -149,7 +150,6 @@ class FlickrClient {
                 searchWithPageCompletionHandler(results: nil, error: "could not find the key: \(FlickrResponseKey.Photo)")
                 return
             }
-            print(withPageNumber)
             searchWithPageCompletionHandler(results: photoArray, error: nil)
         }
     }

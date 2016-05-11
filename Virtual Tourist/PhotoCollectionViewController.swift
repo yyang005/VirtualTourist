@@ -137,7 +137,7 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
                     return
                 }
                 print(photoArray)
-                let numPhotos = min(photoArray.count, FlickrClient.Constants.MaxNumPhotos)
+                let numPhotos = min(photoArray.count, FlickrClient.Constants.MaxNumPhotos) - 1
                 for i in 0...numPhotos {
                     let photo = Photo(dictionary: photoArray[i], context: self.sharedContext)
                     
