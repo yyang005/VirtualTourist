@@ -104,6 +104,7 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
             }
             saveContext()
         }
+        selectedIndexPaths.removeAll()
     }
     
     func update() {
@@ -136,10 +137,9 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
                     })
                     return
                 }
-                print(photoArray)
-                let numPhotos = min(photoArray.count, FlickrClient.Constants.MaxNumPhotos) - 1
-                for i in 0...numPhotos {
-                    let photo = Photo(dictionary: photoArray[i], context: self.sharedContext)
+                print(photoArray.count)
+                for photoDic in photoArray {
+                    let photo = Photo(dictionary: photoDic, context: self.sharedContext)
                     
                     // In core data we use the relationship. We set the photo's pin property
                     photo.pin = self.pin
@@ -147,7 +147,6 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
                 
                 dispatch_async(dispatch_get_main_queue(), { () -> Void in
                     self.button.enabled = true
-                    //self.collectionView.reloadData()
                 })
                 self.saveContext()
             }
@@ -187,23 +186,31 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier("PhotoCell", forIndexPath: indexPath) as! PhotoCollectionCell
         let photo = fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
-        let imagePath = photo.filePath
+        let imageURL = photo.imageURL
         
-        cell.layer.cornerRadius = 5
-        
-        cell.imageView.backgroundColor = UIColor.lightGrayColor()
-        cell.activityIndicator.startAnimating()
-        client.taskForImage(imagePath) { (data, error) -> Void in
+        if cell.imageView.image == nil{
+            cell.layer.cornerRadius = 5
             
-            guard error == nil else {
-                print(error)
-                return
+            cell.imageView.backgroundColor = UIColor.lightGrayColor()
+            cell.activityIndicator.startAnimating()
+            client.taskForImage(imageURL) { (data, error) -> Void in
+                
+                guard error == nil else {
+                    print(error)
+                    return
+                }
+                photo.imageData = data
+                data?.writeToFile(photo.filePath, atomically: true)
+                let image = UIImage(data: data!)
+                dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    cell.activityIndicator.stopAnimating()
+                    cell.imageView.image = image
+                })
             }
-            let image = UIImage(data: data!)
-            dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                cell.activityIndicator.stopAnimating()
-                cell.imageView.image = image
-            })
+        }else {
+            cell.layer.cornerRadius = 5
+            
+            cell.imageView.backgroundColor = UIColor.whiteColor()
         }
         return cell
     }
@@ -211,6 +218,7 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     //MARK: collection view delegate methods
     
     func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
+        collectionView.deselectItemAtIndexPath(indexPath, animated: true)
         let selectCell = collectionView.cellForItemAtIndexPath(indexPath) as! PhotoCollectionCell
         
         let index = selectedIndexPaths.indexOf(indexPath)

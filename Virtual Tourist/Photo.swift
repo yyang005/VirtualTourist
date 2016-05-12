@@ -11,8 +11,11 @@ import CoreData
 
 class Photo: NSManagedObject {
     @NSManaged var title: String
-    @NSManaged var filePath: String
+    @NSManaged var imageURL: String
     @NSManaged var pin: Pin?
+    @NSManaged var filePath: String
+    
+    var imageData: NSData?
     
     override init(entity: NSEntityDescription, insertIntoManagedObjectContext context: NSManagedObjectContext?) {
        super.init(entity: entity, insertIntoManagedObjectContext: context)
@@ -23,6 +26,14 @@ class Photo: NSManagedObject {
         super.init(entity: entity, insertIntoManagedObjectContext: context)
         
         self.title = dictionary["title"] as! String
-        self.filePath = dictionary["url_m"] as! String
+        self.imageURL = dictionary["url_m"] as! String
+        let imageURL = NSURL(string: self.imageURL)!
+        self.filePath = getFilePath(imageURL.lastPathComponent!)
+    }
+    
+    func getFilePath(urlString: String) -> String {
+        let documentDirectoryURL = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first
+        let filePath = documentDirectoryURL?.URLByAppendingPathComponent(urlString).path
+        return filePath!
     }
 }
