@@ -8,6 +8,7 @@
 
 import Foundation
 import CoreData
+import UIKit
 
 class Photo: NSManagedObject {
     @NSManaged var title: String
@@ -15,7 +16,7 @@ class Photo: NSManagedObject {
     @NSManaged var pin: Pin?
     @NSManaged var filePath: String
     
-    var imageData: NSData?
+    var image: UIImage?
     
     override init(entity: NSEntityDescription, insertIntoManagedObjectContext context: NSManagedObjectContext?) {
        super.init(entity: entity, insertIntoManagedObjectContext: context)

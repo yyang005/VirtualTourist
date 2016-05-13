@@ -68,7 +68,7 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
         collectionView.delegate = self
         collectionView.dataSource = self
         
-        if pin!.photos?.count == 0 {
+        if fetchedResultsController.fetchedObjects?.count == 0 {
             fetchPhotosFromFlickr()
         }
     }
@@ -100,12 +100,6 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
             for indexPath in selectedIndexPaths {
                 let photo = photos[indexPath.row]
                 sharedContext.deleteObject(photo)
-                do {
-                    try NSFileManager.defaultManager().removeItemAtPath(photo.filePath)
-                }
-                catch {
-                    alert("delete file error")
-                }
             }
             saveContext()
         }
@@ -121,12 +115,6 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     func grabNewPhotos() {
         for photo in fetchedResultsController.fetchedObjects as! [Photo] {
             sharedContext.deleteObject(photo)
-            do {
-                try NSFileManager.defaultManager().removeItemAtPath(photo.filePath)
-            }
-            catch {
-                alert("delete file error")
-            }
         }
         saveContext()
         fetchPhotosFromFlickr()
@@ -200,25 +188,27 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
         let imageURL = photo.imageURL
         
         cell.layer.cornerRadius = 5
-        
         cell.imageView.backgroundColor = UIColor.lightGrayColor()
-        cell.activityIndicator.startAnimating()
-        client.taskForImage(imageURL) { (data, error) -> Void in
-            guard error == nil else {
-                self.alert(error!)
-                return
+        if photo.image == nil {
+            cell.activityIndicator.startAnimating()
+            client.taskForImage(imageURL) { (data, error) -> Void in
+                guard error == nil else {
+                    self.alert(error!)
+                    return
+                }
+                let image = UIImage(data: data!)
+                photo.image = image
+                dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    cell.activityIndicator.stopAnimating()
+                    cell.imageView.image = image
+                })
             }
-            photo.imageData = data
-            data?.writeToFile(photo.filePath, atomically: true)
-            let image = UIImage(data: data!)
-            dispatch_async(dispatch_get_main_queue(), { () -> Void in
-                cell.activityIndicator.stopAnimating()
-                cell.imageView.image = image
-            })
         }
-        
-        let index = selectedIndexPaths.indexOf(indexPath)
-        if let _ = index {
+        else{
+            cell.imageView.image = photo.image
+        }
+
+        if let _ = selectedIndexPaths.indexOf(indexPath) {
             cell.imageView.alpha = 0.25
         }else {
             cell.imageView.alpha = 1.0
@@ -230,7 +220,6 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
     //MARK: collection view delegate methods
     
     func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
-        //collectionView.deselectItemAtIndexPath(indexPath, animated: true)
         let selectCell = collectionView.cellForItemAtIndexPath(indexPath) as! PhotoCollectionCell
         
         let index = selectedIndexPaths.indexOf(indexPath)
