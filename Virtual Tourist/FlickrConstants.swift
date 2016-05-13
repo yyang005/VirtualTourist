@@ -19,7 +19,7 @@ extension FlickrClient {
         
         //MARK: maximum number of photos to be saved
         
-        static let MaxNumPhotos: Int = 21
+        //static let MaxNumPhotos: Int = 21
     }
     
     struct FlickrParameterKey {
