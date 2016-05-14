@@ -187,15 +187,16 @@ class PhotoCollectionViewController: UIViewController, MKMapViewDelegate, UIColl
         let photo = fetchedResultsController.objectAtIndexPath(indexPath) as! Photo
         let imageURL = photo.imageURL
         
-        cell.layer.cornerRadius = 5
-        cell.imageView.backgroundColor = UIColor.lightGrayColor()
         if photo.image == nil {
+            cell.layer.cornerRadius = 5
+            cell.imageView.backgroundColor = UIColor.lightGrayColor()
             cell.activityIndicator.startAnimating()
             client.taskForImage(imageURL) { (data, error) -> Void in
                 guard error == nil else {
                     self.alert(error!)
                     return
                 }
+                data?.writeToFile(photo.filePath, atomically: true)
                 let image = UIImage(data: data!)
                 photo.image = image
                 dispatch_async(dispatch_get_main_queue(), { () -> Void in

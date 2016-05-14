@@ -19,7 +19,7 @@ class Photo: NSManagedObject {
     var image: UIImage?
     
     override init(entity: NSEntityDescription, insertIntoManagedObjectContext context: NSManagedObjectContext?) {
-       super.init(entity: entity, insertIntoManagedObjectContext: context)
+        super.init(entity: entity, insertIntoManagedObjectContext: context)
     }
     
     init(dictionary: [String: AnyObject], context: NSManagedObjectContext){
@@ -36,5 +36,17 @@ class Photo: NSManagedObject {
         let documentDirectoryURL = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first
         let filePath = documentDirectoryURL?.URLByAppendingPathComponent(urlString).path
         return filePath!
+    }
+    
+    override func prepareForDeletion() {
+        let mgr = NSFileManager.defaultManager()
+        if mgr.fileExistsAtPath(self.filePath) {
+            do {
+                try mgr.removeItemAtPath(self.filePath)
+            }
+            catch {
+                print("error in deleting file")
+            }
+        }
     }
 }
